@@ -1,0 +1,199 @@
+output "vpc_cidr" {
+  value = aws_vpc.vpc.cidr_block
+}
+
+output "vpc_id" {
+  value = aws_vpc.vpc.id
+}
+
+output "subnet_cidr" {
+  value = aws_subnet.public_subnet[*].cidr_block
+}
+
+output "subnet_id" {
+  value = aws_subnet.public_subnet[*].id
+}
+
+# ================================================================================
+# OUTPUTS DO EKS CLUSTER
+# ================================================================================
+
+output "eks_cluster_endpoint" {
+  description = "Cluster EKS endpoint"
+  value       = aws_eks_cluster.cluster.endpoint
+}
+
+output "eks_cluster_name" {
+  description = "Cluster EKS name"
+  value       = aws_eks_cluster.cluster.name
+}
+
+output "eks_cluster_arn" {
+  description = "Cluster EKS ARN"
+  value       = aws_eks_cluster.cluster.arn
+}
+
+# ================================================================================
+# OUTPUTS DO API GATEWAY
+# ================================================================================
+
+output "api_gateway_url" {
+  description = "API Gateway base URL"
+  value       = aws_apigatewayv2_stage.prod.invoke_url
+}
+
+output "api_gateway_id" {
+  description = "API Gateway ID"
+  value       = aws_apigatewayv2_api.api_gateway.id
+}
+
+output "api_gateway_health_url" {
+  description = "API Gateway health check URL"
+  value       = "${aws_apigatewayv2_stage.prod.invoke_url}/health"
+}
+
+# ================================================================================
+# OUTPUTS DO LOAD BALANCER
+# ================================================================================
+
+output "alb_dns_name" {
+  description = "Network Load Balancer DNS name"
+  value       = aws_lb.alb.dns_name
+}
+
+output "alb_arn" {
+  description = "Network Load Balancer ARN"
+  value       = aws_lb.alb.arn
+}
+
+output "alb_target_group_arn" {
+  description = "Target Group ARN - Use this in NGINX Ingress Controller annotation"
+  value       = aws_lb_target_group.alb_tg.arn
+}
+
+output "efs_file_system_id" {
+  description = "ID do EFS para usar em PersistentVolumes"
+  value       = aws_efs_file_system.efs.id
+}
+
+output "efs_dns_name" {
+  description = "DNS do EFS para configuração de PV"
+  value       = aws_efs_file_system.efs.dns_name
+}
+
+# ================================================================================
+# OUTPUT PARA VERIFICAÇÃO DO AUTO SCALING GROUP E TARGET GROUP
+# ================================================================================
+output "eks_autoscaling_group_name" {
+  description = "Nome do Auto Scaling Group dos worker nodes do EKS"
+  value       = try(data.aws_autoscaling_groups.eks_node_groups.names[0], "N/A")
+}
+
+output "target_group_arn" {
+  description = "ARN do Target Group anexado ao Auto Scaling Group"
+  value       = aws_lb_target_group.alb_tg.arn
+}
+
+output "alb_target_group_health" {
+  description = "Configuração de health check do Target Group"
+  value = {
+    protocol            = aws_lb_target_group.alb_tg.health_check[0].protocol
+    port                = aws_lb_target_group.alb_tg.health_check[0].port
+    path                = aws_lb_target_group.alb_tg.health_check[0].path
+    healthy_threshold   = aws_lb_target_group.alb_tg.health_check[0].healthy_threshold
+    unhealthy_threshold = aws_lb_target_group.alb_tg.health_check[0].unhealthy_threshold
+  }
+}
+
+# ================================================================================
+# OUTPUTS DOS SECURITY GROUPS
+# ================================================================================
+
+output "eks_security_group_id" {
+  description = "ID do Security Group do EKS (cluster e nodes)"
+  value       = aws_security_group.eks_sg.id
+}
+
+output "efs_security_group_id" {
+  description = "ID do Security Group do EFS"
+  value       = aws_security_group.efs_sg.id
+}
+
+# ================================================================================
+# OUTPUTS DA LAMBDA DE AUTENTICAÇÃO
+# ================================================================================
+
+output "auth_lambda_function_name" {
+  value = var.lambda_function_name
+  description = "Lambda function name that the pipeline should deploy to"
+}
+
+output "auth_lambda_function_arn" {
+  value = "arn:aws:lambda:${var.region_default}:${data.aws_caller_identity.current.account_id}:function:${var.lambda_function_name}"
+  description = "Full ARN for the Lambda function (useful in CI/CD)"
+}
+
+output "auth_api_invoke_url" {
+  value = "${aws_apigatewayv2_stage.prod.invoke_url}/auth"
+  description = "Public invoke URL for the Authentication endpoint"
+}
+
+output "auth_lambda_artifacts_bucket_name" {
+  value       = aws_s3_bucket.lambda_artifacts_bucket.id
+  description = "S3 bucket where the CI pipeline should upload the Lambda package"
+}
+
+# ================================================================================
+# OUTPUTS DO RABBITMQ
+# ================================================================================
+
+# output "rabbitmq_broker_id" {
+#   description = "ID do RabbitMQ broker"
+#   value       = aws_mq_broker.rabbitmq.id
+# }
+
+# output "rabbitmq_broker_arn" {
+#   description = "ARN do RabbitMQ broker"
+#   value       = aws_mq_broker.rabbitmq.arn
+# }
+
+# output "rabbitmq_broker_console_url" {
+#   description = "URL do console de gerenciamento do RabbitMQ"
+#   value       = "https://${aws_mq_broker.rabbitmq.instances[0].console_url}"
+# }
+
+# output "rabbitmq_amqp_endpoint" {
+#   description = "Endpoint AMQP do RabbitMQ (porta 5672)"
+#   value       = aws_mq_broker.rabbitmq.instances[0].endpoints[0]
+# }
+
+# output "rabbitmq_amqps_endpoint" {
+#   description = "Endpoint AMQPS do RabbitMQ (porta 5671)"
+#   value       = aws_mq_broker.rabbitmq.instances[0].endpoints[1]
+# }
+
+# output "rabbitmq_connection_string" {
+#   description = "String de conexão para uso no Kubernetes (use com credentials separadas)"
+#   value       = "amqp://${aws_mq_broker.rabbitmq.instances[0].ip_address}:5672"
+#   sensitive   = true
+# }
+
+# output "rabbitmq_host" {
+#   description = "Host do RabbitMQ para configuração no Kubernetes"
+#   value       = aws_mq_broker.rabbitmq.instances[0].ip_address
+# }
+
+# output "rabbitmq_port" {
+#   description = "Porta AMQP do RabbitMQ"
+#   value       = "5672"
+# }
+
+# output "rabbitmq_port_tls" {
+#   description = "Porta AMQPS do RabbitMQ (com TLS)"
+#   value       = "5671"
+# }
+
+# output "rabbitmq_management_port" {
+#   description = "Porta do console de gerenciamento do RabbitMQ"
+#   value       = "15672"
+# }

@@ -1,0 +1,51 @@
+name: Terraform Apply AWS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./src
+
+    env:
+      AWS_REGION: us-east-1
+      TF_VAR_principal_user_arn: ${{ vars.AWS_PRINCIPAL_USER_ARN }}
+      TF_VAR_eks_lab_role_arn: ${{ vars.EKS_LAB_ROLE_ARN }}
+      TF_VAR_lambda_function_name: ${{ vars.AUTH_FUNCTION_NAME }}
+      TF_VAR_lambda_artifacts_bucket_name: ${{ vars.LAMBDA_ARTIFACTS_BUCKET_NAME }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init -backend-config="bucket=${{ vars.TF_BUCKET_NAME }}"
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Export Terraform outputs
+        run: terraform output -json > outputs.json
+
+      - name: Upload outputs.json to S3
+        run: aws s3 cp outputs.json s3://${{ vars.TF_BUCKET_NAME }}/outputs.json
